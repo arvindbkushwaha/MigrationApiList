@@ -22,6 +22,7 @@ namespace MigrationApiDemo
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         List<User> usersColl = null;
         private Boolean _isDifferentColumn = ConfigurationManager.AppSettings["IsDestinationListHaveDifferentColumn"] == "Yes" ? true : false;
+        private ClientContext _sourceClientContext;
         public ManifestPackage(SharePointMigrationTarget sharePointMigrationTarget, SharePointMigrationSource sharePointMigrationSource)
         {
             _target = sharePointMigrationTarget;
@@ -31,7 +32,7 @@ namespace MigrationApiDemo
         {
             Log.Debug("Generating manifest package");
             // get Target ChangedColumns
-
+            _sourceClientContext = context;
             var result = new[]
             {
                 GetExportSettingsXml(),
@@ -64,8 +65,34 @@ namespace MigrationApiDemo
 
         private MigrationPackageFile GetLookupListMapXml()
         {
-            var lookupListMapDefaultXml = Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<LookupLists xmlns=\"urn:deployment-lookuplistmap-schema\" />");
-            return new MigrationPackageFile { Filename = "LookupListMap.xml", Contents = lookupListMapDefaultXml };
+            //var lookupListMapDefaultXml = Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<LookupLists xmlns=\"urn:deployment-lookuplistmap-schema\" />");
+            //return new MigrationPackageFile { Filename = "LookupListMap.xml", Contents = lookupListMapDefaultXml };
+            LookupList lookup = new LookupList();
+            var lookupListMapDefaultXml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n";
+            lookupListMapDefaultXml += "<LookupLists xmlns=\"urn:deployment-lookuplistmap-schema\">";
+            // loop the destionation fields
+            foreach (Field field in _target._fields)
+            {
+                // check the type of field
+                string fieldType = field.TypeAsString;
+                if (!field.Hidden && !field.ReadOnlyField && (fieldType == "Lookup" || fieldType == "LookupMulti"))
+                {
+                    // Get the lookuplist id and it's items from dictionary based on column internal name. 
+                    LookupList lp = _target.lookupListDic[field.InternalName];
+                    lookupListMapDefaultXml += $"<LookupList Id=\"{lp.listId}\" Url=\"{lp.itemArray[0].FieldValues["FileDirRef"]}\" Included=\"false\">";
+                    lookupListMapDefaultXml += "<LookupItems>";
+                    // loop through each lookuplist items
+                    foreach (ListItem item in lp.itemArray)
+                    {
+                        
+                        lookupListMapDefaultXml += $"<LookupItem Id=\"{item.Id}\" DocId=\"{item["UniqueId"]}\" Url=\"{item["FileRef"]}\" Included=\"false\" />";
+                    }
+                    lookupListMapDefaultXml += "</LookupItems>";
+                    lookupListMapDefaultXml += "</LookupList>";
+                }
+            }
+            lookupListMapDefaultXml += "</LookupLists>";
+            return new MigrationPackageFile { Filename = "LookupListMap.xml", Contents = Encoding.UTF8.GetBytes(lookupListMapDefaultXml) };
         }
 
         private MigrationPackageFile GetRequirementsXml()
@@ -243,7 +270,7 @@ namespace MigrationApiDemo
                         foreach (var field in versionFields)
                         {
                             string fieldType = field.TypeAsString;
-                            if (!field.ReadOnlyField && !field.Hidden && field.InternalName != "ContentType" && field.InternalName != "Attachments")
+                            if (!field.ReadOnlyField && !field.Hidden && field.InternalName != "ContentType" && field.InternalName != "Attachments" && field.InternalName != "Predecessors")
                             {
                                 var spfield = new SPField();
                                 var isMultiValueTaxField = false; //todo
@@ -264,22 +291,23 @@ namespace MigrationApiDemo
                                 }
                                 else
                                 {
+                                    spfield.Name = _isDifferentColumn && _targetColumnChange.ContainsKey(field.InternalName + ";#" + fieldType) ? _targetColumnChange[field.InternalName + ";#" + fieldType] : field.InternalName;
                                     switch (fieldType)
                                     {
                                         case "User":
-                                            spfield.Name = _isDifferentColumn && _targetColumnChange.ContainsKey(field.InternalName + ";#" + fieldType) ? _targetColumnChange[field.InternalName + ";#" + fieldType] : field.InternalName;
                                             spfield.Value = Common.GetSingleId(usersColl, versItem, field.InternalName, true);
-                                            //spfield.FieldId = field.Id.ToString();
                                             break;
                                         case "MultiUser":
                                             spfield.Name = _isDifferentColumn && _targetColumnChange.ContainsKey(field.InternalName + ";#" + fieldType) ? _targetColumnChange[field.InternalName + ";#" + fieldType] : field.InternalName;
-                                            spfield.Value = Common.GetMultipleId(usersColl, versItem, field.InternalName);
-                                            //spfield.FieldId = field.Id.ToString();
+                                            break;
+                                        case "Lookup":
+                                            spfield.Value = Common.GetLookUpId(versItem, field.InternalName, _target.lookupListDic, true);
+                                            break;
+                                        case "LookupMulti":
+                                            spfield.Value = Common.GetLookUpId(versItem, field.InternalName, _target.lookupListDic, false);
                                             break;
                                         default:
-                                            spfield.Name = _isDifferentColumn && _targetColumnChange.ContainsKey(field.InternalName + ";#" + fieldType) ? _targetColumnChange[field.InternalName + ";#" + fieldType] : field.InternalName;
                                             spfield.Value = versItem[field.InternalName] != null ? versItem[field.InternalName].ToString() : "";
-                                            //spfield.FieldId = field.Id.ToString();
                                             break;
                                     }
                                 }
@@ -435,7 +463,7 @@ namespace MigrationApiDemo
                     && field.InternalName != "_UIVersionString" && field.InternalName != "ItemChildCount"
                     && field.InternalName != "FolderChildCount" && field.InternalName != "_ComplianceFlags"
                     && field.InternalName != "_ComplianceTag" && field.InternalName != "_ComplianceTagWrittenTime"
-                    && field.InternalName != "_ComplianceTagUserId" && field.InternalName != "AppAuthor" && field.InternalName != "AppEditor")
+                    && field.InternalName != "_ComplianceTagUserId" && field.InternalName != "AppAuthor" && field.InternalName != "AppEditor" && field.InternalName!= "Predecessors")
                 {
                     var spfield = new SPField();
                     var isMultiValueTaxField = false; //todo
@@ -456,22 +484,23 @@ namespace MigrationApiDemo
                     }
                     else
                     {
+                        spfield.Name = _isDifferentColumn && _targetColumnChange.ContainsKey(field.InternalName + ";#" + fieldType) ? _targetColumnChange[field.InternalName + ";#" + fieldType] : field.InternalName;
                         switch (fieldType)
                         {
                             case "User":
-                                spfield.Name = _isDifferentColumn && _targetColumnChange.ContainsKey(field.InternalName + ";#" + fieldType) ? _targetColumnChange[field.InternalName + ";#" + fieldType] : field.InternalName;
                                 spfield.Value = Common.GetSingleId(usersColl, listItem, field.InternalName, true);
-                                //spfield.FieldId = field.Id.ToString();
                                 break;
                             case "MultiUser":
-                                spfield.Name = _isDifferentColumn && _targetColumnChange.ContainsKey(field.InternalName + ";#" + fieldType) ? _targetColumnChange[field.InternalName + ";#" + fieldType] : field.InternalName;
                                 spfield.Value = Common.GetMultipleId(usersColl, listItem, field.InternalName);
-                                //spfield.FieldId = field.Id.ToString();
+                                break;
+                            case "Lookup":
+                                spfield.Value = Common.GetLookUpId(listItem, field.InternalName, _target.lookupListDic, true); 
+                                break;
+                            case "LookupMulti":
+                                spfield.Value = Common.GetLookUpId(listItem, field.InternalName, _target.lookupListDic, false);
                                 break;
                             default:
-                                spfield.Name = _isDifferentColumn && _targetColumnChange.ContainsKey(field.InternalName + ";#" + fieldType) ? _targetColumnChange[field.InternalName + ";#" + fieldType] : field.InternalName;
                                 spfield.Value = listItem[field.InternalName] != null ? listItem[field.InternalName].ToString() : "";
-                                //spfield.FieldId = field.Id.ToString();
                                 break;
                         }
                     }
@@ -539,5 +568,20 @@ namespace MigrationApiDemo
             targetedChangedColumns.Add("FullName;#Calculated", "FullNameCC");
             return targetedChangedColumns;
         }
+
+        private void GetLookupListName(Field field)
+        {
+            var lookupField = _sourceClientContext.CastTo<FieldLookup>(field);
+            _sourceClientContext.Load(lookupField);
+            _sourceClientContext.ExecuteQuery();
+            var lookupListId = new Guid(lookupField.LookupList); //returns associated list id
+                                                                 //Retrieve associated List
+            var lookupList = _sourceClientContext.Web.Lists.GetById(lookupListId);
+            _sourceClientContext.Load(lookupList);
+            _sourceClientContext.ExecuteQuery();
+            Console.WriteLine(lookupList);
+        }
+
+
     }
 }

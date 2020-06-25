@@ -127,6 +127,7 @@
     <Compile Include="AzureCloudQueue.cs" />
     <Compile Include="Common.cs" />
     <Compile Include="DeploymentManifest.cs" />
+    <Compile Include="LookupList.cs" />
     <Compile Include="ManifestPackage.cs" />
     <Compile Include="MigrationApiDemo.cs" />
     <Compile Include="MigrationPackageFile.cs" />

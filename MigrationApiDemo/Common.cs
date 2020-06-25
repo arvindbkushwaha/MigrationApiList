@@ -17,7 +17,7 @@ namespace MigrationApiDemo
         public static string GetSingleId(List<User> users, ListItem item, string internalName, Boolean isUserInfoRequired)
         {
             FieldUserValue userValue = item[internalName] as FieldUserValue;
-            if (!(users.Any(a => a.Id == userValue.LookupId)))
+            if (userValue != null && !(users.Any(a => a.Id == userValue.LookupId)))
             {
                 User user = new User();
                 user.Id = userValue.LookupId;
@@ -28,7 +28,7 @@ namespace MigrationApiDemo
             string result = "";
             if (isUserInfoRequired)
             {
-                result = userValue.LookupId.ToString() + ";#;UserInfo";
+                result = userValue != null ? userValue.LookupId.ToString() + ";#;UserInfo" : "";
             }
             else
             {
@@ -64,7 +64,7 @@ namespace MigrationApiDemo
         public static string GetSingleId(List<User> users, Dictionary<string, Object> item, string internalName, Boolean isUserInfoRequired)
         {
             FieldUserValue userValue = item[internalName] as FieldUserValue;
-            if (!(users.Any(a => a.Id == userValue.LookupId)))
+            if (userValue != null && !(users.Any(a => a.Id == userValue.LookupId)))
             {
                 User user = new User();
                 user.Id = userValue.LookupId;
@@ -75,7 +75,7 @@ namespace MigrationApiDemo
             string result = "";
             if (isUserInfoRequired)
             {
-                result = userValue.LookupId.ToString() + ";UserInfo";
+                result = userValue != null ? userValue.LookupId.ToString() + ";UserInfo" : "";
             }
             else
             {
@@ -135,6 +135,86 @@ namespace MigrationApiDemo
                 }
             }
             return litem;
+        }
+        public static string GetLookUpId(ListItem item, string internalName, Dictionary<string, LookupList> lookupDictonary, Boolean isSingleLookup)
+        {
+            string lookupId = String.Empty;
+            string listId = lookupDictonary[internalName].listId;
+            if (isSingleLookup)
+            {
+                FieldLookupValue singleLook = (item[internalName] as FieldLookupValue);
+                lookupId = singleLook != null ? singleLook.LookupId + ";#;" + listId : string.Empty;
+            }
+            else
+            {
+                var lookupIds = new List<int>();
+                var MultipleValues = (item[internalName] as FieldLookupValue[]);
+                for (int count = 0; count <= MultipleValues.Length - 1; count++)
+                {
+                    FieldLookupValue itemValue = MultipleValues[count];
+                    if (MultipleValues.Length == 1)
+                    {
+                        lookupId += itemValue.LookupId + ";#";
+                    }
+                    else if (MultipleValues.Length > 1)
+                    {
+                        if (count == MultipleValues.Length - 1)
+                        {
+                            lookupId += itemValue.LookupId + ";#";
+                        }
+                        else
+                        {
+                            lookupId += itemValue.LookupId + ";#;#";
+                        }
+                    }
+                }
+                if (MultipleValues.Length > 0)
+                {
+                    lookupId += ";" + listId;
+                }
+
+            }
+            return lookupId;
+        }
+        public static string GetLookUpId(Dictionary<string, object> item, string internalName, Dictionary<string, LookupList> lookupDictonary, Boolean isSingleLookup)
+        {
+            string lookupId = String.Empty;
+            string listId = lookupDictonary[internalName].listId;
+            if (isSingleLookup)
+            {
+                FieldLookupValue singleLook = (item[internalName] as FieldLookupValue);
+                lookupId = singleLook != null ? singleLook.LookupId + ";#;" + listId : string.Empty;
+            }
+            else
+            {
+                var lookupIds = new List<int>();
+                var MultipleValues = (item[internalName] as FieldLookupValue[]);
+                for (int count = 0; count <= MultipleValues.Length - 1; count++)
+                {
+                    FieldLookupValue itemValue = MultipleValues[count];
+                    if (MultipleValues.Length == 1)
+                    {
+                        lookupId += itemValue.LookupId + ";#";
+                    }
+                    else if (MultipleValues.Length > 1)
+                    {
+                        if (count == MultipleValues.Length - 1)
+                        {
+                            lookupId += itemValue.LookupId + ";#";
+                        }
+                        else
+                        {
+                            lookupId += itemValue.LookupId + ";#;#";
+                        }
+                    }
+                }
+                if (MultipleValues.Length > 0)
+                {
+                    lookupId += ";" + listId;
+                }
+
+            }
+            return lookupId;
         }
     }
 }
