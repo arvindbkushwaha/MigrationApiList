@@ -9,8 +9,8 @@ namespace MigrationApiDemo
     public class SharePointMigrationTarget
     {
         public Uri _tenantUrl;
-        private readonly string _username;
-        private readonly string _password;
+        public readonly string _username;
+        public readonly string _password;
         public Dictionary<String, LookupList> lookupListDic = new Dictionary<string, LookupList>();
         public ClientContext _client;
         public FieldCollection _fields;

@@ -14,6 +14,27 @@ namespace MigrationApiDemo
             var newDT = dt.Split('Z');
             return Convert.ToDateTime(newDT[0]);
         }
+        public static string ValidXMLDate(ListItem item, string internalName)
+        {
+            string itemRegDate = string.Empty;
+            if (item[internalName] != null)
+            {
+                DateTime date = Convert.ToDateTime(item[internalName]);
+                itemRegDate = date.ToString("yyyy-MM-ddTHH:mm:ss");
+            }
+            return itemRegDate;
+        }
+        public static string ValidXMLDate(Dictionary<string, Object> item, string internalName)
+        {
+            string itemRegDate = string.Empty;
+            if (item[internalName] != null)
+            {
+                DateTime date = Convert.ToDateTime(item[internalName]);
+                itemRegDate = date.ToString("yyyy-MM-ddTHH:mm:ss");
+            }
+            return itemRegDate;
+        }
+
         public static string GetSingleId(List<User> users, ListItem item, string internalName, Boolean isUserInfoRequired)
         {
             FieldUserValue userValue = item[internalName] as FieldUserValue;

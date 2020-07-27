@@ -17,13 +17,15 @@ namespace MigrationApiDemo
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private ListItemCollection itemsCollections;
+        private ListItemCollection _sourceItemsCollections;
+        private ListItemCollection _destinationItemsCollections;
         private readonly AzureBlob _blobContainingManifestFiles;
         private readonly SharePointMigrationTarget _target;
         private readonly SharePointMigrationSource _source;
         private readonly AzureCloudQueue _migrationApiQueue;
         private readonly TestDataProvider _testDataProvider;
-        private ClientContext context = null;
+        private ClientContext _sourceContext = null;
+        private ClientContext _destinationContext = null;
         public MigrationApiDemo()
         {
             Log.Debug("Initiaing SharePoint connection.... ");
@@ -35,109 +37,40 @@ namespace MigrationApiDemo
             _blobContainingManifestFiles = new AzureBlob(
                 ConfigurationManager.AppSettings["ManifestBlob.AccountName"],
                 ConfigurationManager.AppSettings["ManifestBlob.AccountKey"],
-                ConfigurationManager.AppSettings["ManifestBlob.ContainerName"]);
+                ConfigurationManager.AppSettings["ManifestBlob.ContainerName"] + DateTime.Now.ToString("yyyyMMddHHmmss"));
 
             var testFilesBlob = new AzureBlob(
                 ConfigurationManager.AppSettings["SourceFilesBlob.AccountName"],
                 ConfigurationManager.AppSettings["SourceFilesBlob.AccountKey"],
-                ConfigurationManager.AppSettings["SourceFilesBlob.ContainerName"]);
+                ConfigurationManager.AppSettings["SourceFilesBlob.ContainerName"] + DateTime.Now.ToString("yyyyMMddHHmmss"));
 
             _testDataProvider = new TestDataProvider(testFilesBlob);
 
             _migrationApiQueue = new AzureCloudQueue(
                 ConfigurationManager.AppSettings["ReportQueue.AccountName"],
                 ConfigurationManager.AppSettings["ReportQueue.AccountKey"],
-                ConfigurationManager.AppSettings["ReportQueue.QueueName"]);
+                ConfigurationManager.AppSettings["ReportQueue.QueueName"] + DateTime.Now.ToString("yyyyMMddHHmmss"));
         }
 
         public void ProvisionTestFiles()
         {
             string siteUrl = _source._tenantUrl + _source._siteName;
-            context = SPData.GetOnlineContext(siteUrl, _source._username, _source._password);
-            itemsCollections = _testDataProvider.ProvisionAndGetFiles(context, _source._listName);
+            _sourceContext = SPData.GetOnlineContext(siteUrl, _source._username, _source._password);
+            _sourceItemsCollections = _testDataProvider.ProvisionAndGetFiles(_sourceContext, _source._listName);
+
+            string destionationUrl = _target._tenantUrl+_target.SiteName;
+            _destinationContext = SPData.GetOnlineContext(destionationUrl, _target._username, _target._password);
+            _destinationItemsCollections = _testDataProvider.ProvisionAndGetFiles(_destinationContext, _target.ListName);
+            _destinationContext.Load(_destinationItemsCollections);
             //getUser();
         }
 
-        public void getUser()
-        {
-            ClientContext context = SPData.GetOnlineContext("https://cactusglobal.sharepoint.com/sites/medcomdev/", _source._username, _source._password);
-            List oList = context.Web.Lists.GetByTitle("ClientInformation");
-            ListItem item = oList.GetItemById(15);
-            context.Load(item);
-            context.ExecuteQuery();
-            List<string> users = new List<string>();
-            List<User> userIds = new List<User>();
-            ListItemVersionCollection versions = item.Versions;
-            context.Load(versions);
-            context.ExecuteQuery();
-
-            //foreach (FieldUserValue userValue in item["Editor"] as FieldUserValue[])
-            //{
-            //    //Console.WriteLine(userValue.LookupValue.ToString());
-            //    users.Add(userValue.Email);
-            //    User user = new User();
-            //    user.Id = userValue.LookupId;
-            //    user.name = userValue.LookupValue;
-            //    user.emailId = userValue.Email;
-            //    userIds.Add(user);
-            //}
-            FieldUserValue userValue = item["Editor"] as FieldUserValue;
-            users.Add(userValue.Email);
-            User user = new User();
-            user.Id = userValue.LookupId;
-            user.name = userValue.LookupValue;
-            user.emailId = userValue.Email;
-            userIds.Add(user);
-            var results1 = SPData.getUserInfoUserProperties(context, userIds);
-            foreach (var kvp in results1)
-            {
-                if (kvp.Value.ServerObjectIsNull.HasValue && !kvp.Value.ServerObjectIsNull.Value)
-                {
-                    Console.WriteLine(kvp.Key);
-                    Console.WriteLine("---------------------------------");
-                    foreach (var property in kvp.Value.FieldValues)
-                    {
-                        Console.WriteLine(string.Format("{0}: {1}",
-                            property.Key.ToString(), property.Value != null ? property.Value.ToString() : ""));
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("User not found:" + kvp.Key);
-                }
-            }
-            var results = SPData.GetMultipleUsersProfileProperties(context, userIds, results1);
-            // Get the PeopleManager object and then get the target user's properties. 
-            foreach (var kvp in results)
-            {
-                if (kvp.Value.ServerObjectIsNull.HasValue && !kvp.Value.ServerObjectIsNull.Value)
-                {
-                    Console.WriteLine(kvp.Value.DisplayName);
-                    Console.WriteLine("---------------------------------");
-                    foreach (var property in kvp.Value.UserProfileProperties)
-                    {
-                        Console.WriteLine(string.Format("{0}: {1}",
-                            property.Key.ToString(), property.Value.ToString()));
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("User not found:" + kvp.Key);
-                }
-                Console.WriteLine("------------------------------");
-                Console.WriteLine("          ");
-            }
-            
-
-
-            Console.ReadLine();
-        }
         public void CreateAndUploadMigrationPackage()
         {
-            if (itemsCollections.Count > 0)
+            if (_sourceItemsCollections.Count > 0)
             {
                 var manifestPackage = new ManifestPackage(_target, _source);
-                var filesInManifestPackage = manifestPackage.GetManifestPackageFiles(itemsCollections, _source._listName, context);
+                var filesInManifestPackage = manifestPackage.GetManifestPackageFiles(_sourceItemsCollections, _destinationItemsCollections, _source._listName, _sourceContext);
                 var blobContainingManifestFiles = _blobContainingManifestFiles;
                 blobContainingManifestFiles.RemoveAllFiles();
                 foreach (var migrationPackageFile in filesInManifestPackage)

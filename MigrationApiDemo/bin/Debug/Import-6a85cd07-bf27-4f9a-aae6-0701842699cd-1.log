@@ -1,0 +1,34 @@
+[5/26/2020 11:59:33 PM] Start Time: 5/26/2020 11:59:32 PM.
+[5/26/2020 11:59:33 PM] Correlation Id: aa71569f-80f9-0000-4a06-ed6b66a92129 
+[5/26/2020 11:59:33 PM] [Progress] Initializing Import.
+[5/26/2020 11:59:33 PM] [Progress] Downloaded SystemData.xml: SnapShotTime == ; MD5 == gVVKJlBTDyXvaEyPSRaIlA==; Size == 345 bytes
+[5/26/2020 11:59:33 PM] [Progress] Downloaded Requirements.xml: SnapShotTime == ; MD5 == ocg3J/9WE1fAURRfIiAesw==; Size == 99 bytes
+[5/26/2020 11:59:33 PM] [Progress] Downloaded ExportSettings.xml: SnapShotTime == ; MD5 == tw7Vi3G9AUjm9mepCAQLnw==; Size == 203 bytes
+[5/26/2020 11:59:33 PM] [Warning] The specified package does not contain the security information requested for import. Import was requested to run with 'All' while export used 'None'. Using export settings.
+[5/26/2020 11:59:33 PM] [Progress] Downloaded SystemData.xml: SnapShotTime == ; MD5 == gVVKJlBTDyXvaEyPSRaIlA==; Size == 345 bytes
+[5/26/2020 11:59:33 PM] [Progress] Downloaded UserGroup.xml: SnapShotTime == ; MD5 == 8F8QzVekgE/YH3QRyW0tng==; Size == 131 bytes
+[5/26/2020 11:59:33 PM] [Progress] Downloaded LookupListMap.xml: SnapShotTime == ; MD5 == G7MYLDX9OxTdkCFCe4rBhQ==; Size == 99 bytes
+[5/26/2020 11:59:33 PM] [Progress] Starting content import.
+[5/26/2020 11:59:33 PM] [Progress] De-Serializing Objects to Database.
+[5/26/2020 11:59:33 PM] [Progress] Downloaded Manifest.xml: SnapShotTime == ; MD5 == wtDdWISU3kU4hgBMqdt06w==; Size == 4657 bytes
+[5/26/2020 11:59:33 PM] [Folder] [CTYArvindApril] [CTYArvindApril] [5b2b0393-9fad-4099-82ea-7af08b72adbe][Progress] Importing
+[5/26/2020 11:59:33 PM] [Folder] [CTYArvindApril] [CTYArvindApril] [5b2b0393-9fad-4099-82ea-7af08b72adbe]  [Verbose] Source URL: CTYArvindApril
+[5/26/2020 11:59:33 PM] [List] [CTYArvindApril] [CTYArvindApril] [608f4193-aae2-4bae-bd66-04c211893981][Progress] Importing
+[5/26/2020 11:59:33 PM] [ListItem] [test.txt] [CTYArvindApril/Finance/test.txt] [b5715f5c-b15d-4c83-9d10-e5645f0c3b9c][Progress] Importing
+[5/26/2020 11:59:33 PM] [ListItem] [test.txt] [CTYArvindApril/Finance/test.txt] [b5715f5c-b15d-4c83-9d10-e5645f0c3b9c][Progress] Importing
+[5/26/2020 11:59:33 PM] [ListItem] [test.txt] [CTYArvindApril/Finance/test.txt] [b5715f5c-b15d-4c83-9d10-e5645f0c3b9c]  [Verbose] List URL: /sites/medcomdev/CTYArvindApril
+[5/26/2020 11:59:34 PM] [ListItem] [test.txt] [CTYArvindApril/Finance/test.txt] [b5715f5c-b15d-4c83-9d10-e5645f0c3b9c]  [Progress] test.txt: SnapShotTime == ; MD5 == DPIslJQVl30wEk8IptBb7Q==; Size == 28 bytes
+[5/26/2020 11:59:34 PM] [ListItem] [test.txt] [CTYArvindApril/Finance/test.txt] [b5715f5c-b15d-4c83-9d10-e5645f0c3b9c]  [Verbose] Moving object from /sites/medcomdev/CTYArvindApril/test.txt to /sites/medcomdev/CTYArvindApril/Finance/test.txt.
+[5/26/2020 11:59:34 PM] [ListItem] [test2.txt] [CTYArvindApril/Finance/test2.txt] [046c4bd6-17cb-47e9-baee-a6707ffc8753][Progress] Importing
+[5/26/2020 11:59:34 PM] [ListItem] [test2.txt] [CTYArvindApril/Finance/test2.txt] [046c4bd6-17cb-47e9-baee-a6707ffc8753][Progress] Importing
+[5/26/2020 11:59:34 PM] [ListItem] [test2.txt] [CTYArvindApril/Finance/test2.txt] [046c4bd6-17cb-47e9-baee-a6707ffc8753]  [Verbose] List URL: /sites/medcomdev/CTYArvindApril
+[5/26/2020 11:59:34 PM] [ListItem] [test2.txt] [CTYArvindApril/Finance/test2.txt] [046c4bd6-17cb-47e9-baee-a6707ffc8753]  [Progress] test2.txt: SnapShotTime == ; MD5 == dF364/jrvYWy/QnUYeVyLQ==; Size == 8 bytes
+[5/26/2020 11:59:34 PM] [ListItem] [test2.txt] [CTYArvindApril/Finance/test2.txt] [046c4bd6-17cb-47e9-baee-a6707ffc8753]  [Verbose] Moving object from /sites/medcomdev/CTYArvindApril/test2.txt to /sites/medcomdev/CTYArvindApril/Finance/test2.txt.
+[5/26/2020 11:59:35 PM] [Verbose] Performing final fixups.
+[5/26/2020 11:59:35 PM] [Progress] Import completed.
+[5/26/2020 11:59:35 PM] Finish Time: 5/26/2020 11:59:35 PM.
+[5/26/2020 11:59:35 PM] Duration: 00:00:02
+[5/26/2020 11:59:35 PM] Byte imported: 36.00 at 15.46 bytes per second
+[5/26/2020 11:59:35 PM] Total Processed Objects: 6
+[5/26/2020 11:59:35 PM] Finished with 1 warnings.
+[5/26/2020 11:59:35 PM] Finished with 0 errors.

@@ -1,0 +1,32 @@
+[5/27/2020 12:05:22 AM] Start Time: 5/27/2020 12:05:22 AM.
+[5/27/2020 12:05:22 AM] Correlation Id: 0072569f-1051-0000-4219-4c3f050d3ae3 
+[5/27/2020 12:05:22 AM] [Progress] Initializing Import.
+[5/27/2020 12:05:22 AM] [Progress] Downloaded SystemData.xml: SnapShotTime == ; MD5 == gVVKJlBTDyXvaEyPSRaIlA==; Size == 345 bytes
+[5/27/2020 12:05:22 AM] [Progress] Downloaded Requirements.xml: SnapShotTime == ; MD5 == ocg3J/9WE1fAURRfIiAesw==; Size == 99 bytes
+[5/27/2020 12:05:23 AM] [Progress] Downloaded ExportSettings.xml: SnapShotTime == ; MD5 == tw7Vi3G9AUjm9mepCAQLnw==; Size == 203 bytes
+[5/27/2020 12:05:23 AM] [Warning] The specified package does not contain the security information requested for import. Import was requested to run with 'All' while export used 'None'. Using export settings.
+[5/27/2020 12:05:23 AM] [Progress] Downloaded SystemData.xml: SnapShotTime == ; MD5 == gVVKJlBTDyXvaEyPSRaIlA==; Size == 345 bytes
+[5/27/2020 12:05:23 AM] [Progress] Downloaded UserGroup.xml: SnapShotTime == ; MD5 == 8F8QzVekgE/YH3QRyW0tng==; Size == 131 bytes
+[5/27/2020 12:05:23 AM] [Progress] Downloaded LookupListMap.xml: SnapShotTime == ; MD5 == G7MYLDX9OxTdkCFCe4rBhQ==; Size == 99 bytes
+[5/27/2020 12:05:23 AM] [Progress] Starting content import.
+[5/27/2020 12:05:23 AM] [Progress] De-Serializing Objects to Database.
+[5/27/2020 12:05:23 AM] [Progress] Downloaded Manifest.xml: SnapShotTime == ; MD5 == v4jrMFeGVcWQY3sA09z/GQ==; Size == 4589 bytes
+[5/27/2020 12:05:23 AM] [Folder] [ProjectContacts] [ProjectContacts] [9dec910a-4ee9-4120-b760-ba0a9f71ddc8][Progress] Importing
+[5/27/2020 12:05:23 AM] [Folder] [ProjectContacts] [ProjectContacts] [9dec910a-4ee9-4120-b760-ba0a9f71ddc8]  [Verbose] Source URL: ProjectContacts
+[5/27/2020 12:05:23 AM] [Folder] [ProjectContacts] [ProjectContacts] [9dec910a-4ee9-4120-b760-ba0a9f71ddc8]  [Progress] Moving object from Lists/ProjectContacts to ProjectContacts.
+[5/27/2020 12:05:23 AM] [List] [ProjectContacts] [ProjectContacts] [6161e630-bb0b-4592-9e73-38be0a83c588][Progress] Importing
+[5/27/2020 12:05:23 AM] [List] [ProjectContacts] [ProjectContacts] [6161e630-bb0b-4592-9e73-38be0a83c588]  [Error] [-2146232832] [Microsoft.SharePoint.SPException] [List ProjectContacts could not be imported because it uses the DocumentLibrary base template and the destination uses the GenericList base template.] 
+[5/27/2020 12:05:23 AM] [ListItem] [test.txt] [ProjectContacts//test.txt] [fcd9d245-725c-4b33-ba21-fd570a831d00][Progress] Importing
+[5/27/2020 12:05:23 AM] [ListItem] [test.txt] [ProjectContacts//test.txt] [fcd9d245-725c-4b33-ba21-fd570a831d00][Progress] Importing
+[5/27/2020 12:05:23 AM] [ListItem] [test.txt] [ProjectContacts//test.txt] [fcd9d245-725c-4b33-ba21-fd570a831d00]  [Verbose] List URL: /sites/medcomdev/ProjectContacts
+[5/27/2020 12:05:23 AM] [ListItem] [test2.txt] [ProjectContacts//test2.txt] [c1bb707b-9b43-4957-b2e7-ef4074d84ba5][Progress] Importing
+[5/27/2020 12:05:23 AM] [ListItem] [test2.txt] [ProjectContacts//test2.txt] [c1bb707b-9b43-4957-b2e7-ef4074d84ba5][Progress] Importing
+[5/27/2020 12:05:23 AM] [ListItem] [test2.txt] [ProjectContacts//test2.txt] [c1bb707b-9b43-4957-b2e7-ef4074d84ba5]  [Verbose] List URL: /sites/medcomdev/ProjectContacts
+[5/27/2020 12:05:23 AM] [Verbose] Performing final fixups.
+[5/27/2020 12:05:23 AM] [Progress] Import completed.
+[5/27/2020 12:05:23 AM] Finish Time: 5/27/2020 12:05:23 AM.
+[5/27/2020 12:05:23 AM] Duration: 00:00:01
+[5/27/2020 12:05:23 AM] Byte imported: 0.00 at 0.00 bytes per second
+[5/27/2020 12:05:23 AM] Total Processed Objects: 6
+[5/27/2020 12:05:23 AM] Finished with 1 warnings.
+[5/27/2020 12:05:23 AM] Finished with 1 errors.
