@@ -157,19 +157,19 @@ namespace MigrationApiDemo
             }
             return litem;
         }
-        public static string GetLookUpId(ListItem item, string internalName, Dictionary<string, LookupList> lookupDictonary, Boolean isSingleLookup)
+        public static string GetLookUpId(ListItem item, Field field, Dictionary<string, LookupList> lookupDictonary, Boolean isSingleLookup)
         {
             string lookupId = String.Empty;
-            string listId = lookupDictonary[internalName].listId;
+            string listId = lookupDictonary[field.InternalName].listId;
             if (isSingleLookup)
             {
-                FieldLookupValue singleLook = (item[internalName] as FieldLookupValue);
+                FieldLookupValue singleLook = (item[field.InternalName] as FieldLookupValue);
                 lookupId = singleLook != null ? singleLook.LookupId + ";#;" + listId : string.Empty;
             }
             else
             {
                 var lookupIds = new List<int>();
-                var MultipleValues = (item[internalName] as FieldLookupValue[]);
+                var MultipleValues = (item[field.InternalName] as FieldLookupValue[]);
                 for (int count = 0; count <= MultipleValues.Length - 1; count++)
                 {
                     FieldLookupValue itemValue = MultipleValues[count];
@@ -197,19 +197,19 @@ namespace MigrationApiDemo
             }
             return lookupId;
         }
-        public static string GetLookUpId(Dictionary<string, object> item, string internalName, Dictionary<string, LookupList> lookupDictonary, Boolean isSingleLookup)
+        public static string GetLookUpId(Dictionary<string, object> item, Field field, Dictionary<string, LookupList> lookupDictonary, Boolean isSingleLookup)
         {
             string lookupId = String.Empty;
-            string listId = lookupDictonary[internalName].listId;
+            string listId = lookupDictonary[field.InternalName].listId;
             if (isSingleLookup)
             {
-                FieldLookupValue singleLook = (item[internalName] as FieldLookupValue);
+                FieldLookupValue singleLook = (item[field.InternalName] as FieldLookupValue);
                 lookupId = singleLook != null ? singleLook.LookupId + ";#;" + listId : string.Empty;
             }
             else
             {
                 var lookupIds = new List<int>();
-                var MultipleValues = (item[internalName] as FieldLookupValue[]);
+                var MultipleValues = (item[field.InternalName] as FieldLookupValue[]);
                 for (int count = 0; count <= MultipleValues.Length - 1; count++)
                 {
                     FieldLookupValue itemValue = MultipleValues[count];

@@ -1,1 +1,0 @@
-[5/27/2020 12:05:23 AM] [List] [ProjectContacts] [ProjectContacts] [6161e630-bb0b-4592-9e73-38be0a83c588]  [Error] [-2146232832] [Microsoft.SharePoint.SPException] [List ProjectContacts could not be imported because it uses the DocumentLibrary base template and the destination uses the GenericList base template.] 

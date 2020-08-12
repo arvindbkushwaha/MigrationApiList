@@ -42,15 +42,26 @@ namespace MigrationApiDemo
             PeopleManager peopleManager = new PeopleManager(context);
             foreach (var user in Users)
             {
-                ListItem item = UsersInfo[user.Id];
-                if (!(String.IsNullOrEmpty(user.emailId)))
+                try
+                {
+                    ListItem item = UsersInfo[user.Id];
+                    if (!(String.IsNullOrEmpty(user.emailId)))
+                    {
+
+                        string loginName = item["Name"] != null ? item["Name"].ToString() : string.Empty;  //claim format login name
+                        if (!string.IsNullOrEmpty(loginName))
+                        {
+                            var personProperties = peopleManager.GetPropertiesFor(loginName);
+                            context.Load(personProperties, p => p.AccountName, p => p.DisplayName,
+                                               p => p.UserProfileProperties);
+                            results.Add(user.emailId, personProperties);
+                        }
+
+                    }
+                }
+                catch(Exception e)
                 {
 
-                    string loginName = item["Name"].ToString();  //claim format login name
-                    var personProperties = peopleManager.GetPropertiesFor(loginName);
-                    context.Load(personProperties, p => p.AccountName, p => p.DisplayName,
-                                       p => p.UserProfileProperties);
-                    results.Add(user.emailId, personProperties);
                 }
             }
             context.ExecuteQuery();

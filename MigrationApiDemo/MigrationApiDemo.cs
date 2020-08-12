@@ -18,7 +18,7 @@ namespace MigrationApiDemo
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private ListItemCollection _sourceItemsCollections;
-        private ListItemCollection _destinationItemsCollections;
+        private List<ListItemCollection> _listDestinationItemsCollections = null;
         private readonly AzureBlob _blobContainingManifestFiles;
         private readonly SharePointMigrationTarget _target;
         private readonly SharePointMigrationSource _source;
@@ -26,6 +26,7 @@ namespace MigrationApiDemo
         private readonly TestDataProvider _testDataProvider;
         private ClientContext _sourceContext = null;
         private ClientContext _destinationContext = null;
+        private Boolean _isModifiedQueryEnabled = ConfigurationManager.AppSettings["IsModifiedQueryEnabled"] == "Yes" ? true : false;
         public MigrationApiDemo()
         {
             Log.Debug("Initiaing SharePoint connection.... ");
@@ -56,12 +57,28 @@ namespace MigrationApiDemo
         {
             string siteUrl = _source._tenantUrl + _source._siteName;
             _sourceContext = SPData.GetOnlineContext(siteUrl, _source._username, _source._password);
-            _sourceItemsCollections = _testDataProvider.ProvisionAndGetFiles(_sourceContext, _source._listName);
+            _sourceItemsCollections = _testDataProvider.ProvisionAndGetFiles(_sourceContext, _source._listName, true);
 
-            string destionationUrl = _target._tenantUrl+_target.SiteName;
+            string destionationUrl = _target._tenantUrl + _target.SiteName;
             _destinationContext = SPData.GetOnlineContext(destionationUrl, _target._username, _target._password);
-            _destinationItemsCollections = _testDataProvider.ProvisionAndGetFiles(_destinationContext, _target.ListName);
-            _destinationContext.Load(_destinationItemsCollections);
+            //Check is fetched data with modified date or Id
+            if (!_isModifiedQueryEnabled)
+            {
+                // fetched destionation data with Id
+                _listDestinationItemsCollections = new List<ListItemCollection>();
+                ListItemCollection destinationItemsCollections = _testDataProvider.ProvisionAndGetFiles(_destinationContext, _target.ListName, false);
+                _destinationContext.Load(destinationItemsCollections);
+                if(destinationItemsCollections.Count > 0)
+                {
+                    _listDestinationItemsCollections.Add(destinationItemsCollections);
+                }
+
+            }
+            else
+            {
+                //fetched destionation data based on source Items Id
+                _listDestinationItemsCollections = _testDataProvider.GetDestinationFiles(_destinationContext, _target.ListName, _sourceItemsCollections);
+            }
             //getUser();
         }
 
@@ -70,7 +87,7 @@ namespace MigrationApiDemo
             if (_sourceItemsCollections.Count > 0)
             {
                 var manifestPackage = new ManifestPackage(_target, _source);
-                var filesInManifestPackage = manifestPackage.GetManifestPackageFiles(_sourceItemsCollections, _destinationItemsCollections, _source._listName, _sourceContext);
+                var filesInManifestPackage = manifestPackage.GetManifestPackageFiles(_sourceItemsCollections, _listDestinationItemsCollections, _source._listName, _sourceContext);
                 var blobContainingManifestFiles = _blobContainingManifestFiles;
                 blobContainingManifestFiles.RemoveAllFiles();
                 foreach (var migrationPackageFile in filesInManifestPackage)
