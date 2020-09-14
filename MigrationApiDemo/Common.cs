@@ -46,10 +46,10 @@ namespace MigrationApiDemo
                 user.emailId = userValue.Email;
                 users.Add(user);
             }
-            string result = "";
+            string result = null;
             if (isUserInfoRequired)
             {
-                result = userValue != null ? userValue.LookupId.ToString() + ";#;UserInfo" : "";
+                result = userValue != null ? userValue.LookupId.ToString() + ";#;UserInfo" : null;
             }
             else
             {
@@ -62,22 +62,25 @@ namespace MigrationApiDemo
         {
             string result = null;
             List<int> Ids = new List<int>();
-            foreach (FieldUserValue userValue in item[internalName] as FieldUserValue[])
+            if (item.FieldValues.ContainsKey(internalName) && item[internalName] != null)
             {
-                Ids.Add(userValue.LookupId);
-                if (!(users.Any(a => a.Id == userValue.LookupId)))
+                foreach (FieldUserValue userValue in item[internalName] as FieldUserValue[])
                 {
-                    User user = new User();
-                    user.Id = userValue.LookupId;
-                    user.name = userValue.LookupValue;
-                    user.emailId = userValue.Email;
-                    users.Add(user);
+                    Ids.Add(userValue.LookupId);
+                    if (!(users.Any(a => a.Id == userValue.LookupId)))
+                    {
+                        User user = new User();
+                        user.Id = userValue.LookupId;
+                        user.name = userValue.LookupValue;
+                        user.emailId = userValue.Email;
+                        users.Add(user);
+                    }
                 }
-            }
-            if (Ids.Count > 0)
-            {
-                result += string.Join(";#", Ids.ToArray());
-                result += ";UserInfo";
+                if (Ids.Count > 0)
+                {
+                    result += string.Join(";#;#", Ids.ToArray());
+                    result += ";#;UserInfo";
+                }
             }
             return result;
         }
@@ -96,7 +99,7 @@ namespace MigrationApiDemo
             string result = "";
             if (isUserInfoRequired)
             {
-                result = userValue != null ? userValue.LookupId.ToString() + ";UserInfo" : "";
+                result = userValue != null ? userValue.LookupId.ToString() + ";UserInfo" : null;
             }
             else
             {
@@ -108,22 +111,26 @@ namespace MigrationApiDemo
         {
             string result = null;
             List<int> Ids = new List<int>();
-            foreach (FieldUserValue userValue in item[internalName] as FieldUserValue[])
+            if (item.ContainsKey(internalName) && item[internalName] != null)
             {
-                Ids.Add(userValue.LookupId);
-                if (!(users.Any(a => a.Id == userValue.LookupId)))
+
+                foreach (FieldUserValue userValue in item[internalName] as FieldUserValue[])
                 {
-                    User user = new User();
-                    user.Id = userValue.LookupId;
-                    user.name = userValue.LookupValue;
-                    user.emailId = userValue.Email;
-                    users.Add(user);
+                    Ids.Add(userValue.LookupId);
+                    if (!(users.Any(a => a.Id == userValue.LookupId)))
+                    {
+                        User user = new User();
+                        user.Id = userValue.LookupId;
+                        user.name = userValue.LookupValue;
+                        user.emailId = userValue.Email;
+                        users.Add(user);
+                    }
                 }
-            }
-            if (Ids.Count > 0)
-            {
-                result += string.Join(";#", Ids.ToArray());
-                result += ";UserInfo";
+                if (Ids.Count > 0)
+                {
+                    result += string.Join(";#;#", Ids.ToArray());
+                    result += ";#;UserInfo";
+                }
             }
             return result;
         }
@@ -197,6 +204,47 @@ namespace MigrationApiDemo
             }
             return lookupId;
         }
+
+        public static string GetLookUpId(ListItem item, string fieldInternalName, Dictionary<string, LookupList> lookupDictonary, Boolean isSingleLookup)
+        {
+            string lookupId = String.Empty;
+            string listId = lookupDictonary[fieldInternalName].listId;
+            if (isSingleLookup)
+            {
+                FieldLookupValue singleLook = (item[fieldInternalName] as FieldLookupValue);
+                lookupId = singleLook != null ? singleLook.LookupId + ";#;" + listId : string.Empty;
+            }
+            else
+            {
+                var lookupIds = new List<int>();
+                var MultipleValues = (item[fieldInternalName] as FieldLookupValue[]);
+                for (int count = 0; count <= MultipleValues.Length - 1; count++)
+                {
+                    FieldLookupValue itemValue = MultipleValues[count];
+                    if (MultipleValues.Length == 1)
+                    {
+                        lookupId += itemValue.LookupId + ";#";
+                    }
+                    else if (MultipleValues.Length > 1)
+                    {
+                        if (count == MultipleValues.Length - 1)
+                        {
+                            lookupId += itemValue.LookupId + ";#";
+                        }
+                        else
+                        {
+                            lookupId += itemValue.LookupId + ";#;#";
+                        }
+                    }
+                }
+                if (MultipleValues.Length > 0)
+                {
+                    lookupId += ";" + listId;
+                }
+
+            }
+            return lookupId;
+        }
         public static string GetLookUpId(Dictionary<string, object> item, Field field, Dictionary<string, LookupList> lookupDictonary, Boolean isSingleLookup)
         {
             string lookupId = String.Empty;
@@ -237,5 +285,6 @@ namespace MigrationApiDemo
             }
             return lookupId;
         }
+
     }
 }

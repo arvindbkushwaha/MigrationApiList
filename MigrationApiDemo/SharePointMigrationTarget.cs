@@ -41,7 +41,7 @@ namespace MigrationApiDemo
             Initialize();
         }
 
-        /*private void Initialize()
+        private void Initialize1()
         {
             var securePassword = new SecureString();
             foreach (var c in _password) securePassword.AppendChar(c);
@@ -89,7 +89,7 @@ namespace MigrationApiDemo
 
                 }
             }
-        }*/
+        }
 
         private void Initialize()
         {

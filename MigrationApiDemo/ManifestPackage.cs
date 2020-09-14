@@ -31,7 +31,7 @@ namespace MigrationApiDemo
             _target = sharePointMigrationTarget;
             _source = sharePointMigrationSource;
         }
-        public IEnumerable<MigrationPackageFile> GetManifestPackageFiles(ListItemCollection sourceItemCollections, List<ListItemCollection> listDestionationItemsCollections, string listName, ClientContext context)
+        public IEnumerable<MigrationPackageFile> GetManifestPackageFiles(ListItemCollection sourceItemCollections, List<ListItemCollection> listSourceItemsCollections, List<ListItemCollection> listDestionationItemsCollections, string listName, ClientContext context)
         {
             Log.Debug("Generating manifest package");
             // get Target ChangedColumns
@@ -42,7 +42,7 @@ namespace MigrationApiDemo
                 GetLookupListMapXml(),
                 //GetManifestXml(sourceItemCollections,destionationItemsCollections, listName, context),
                 //GetScheduleManifestXml(sourceItemCollections, destionationItemsCollections,listName, context),
-                ChooseManifest(sourceItemCollections, listDestionationItemsCollections,listName, context),
+                ChooseManifest(sourceItemCollections, listSourceItemsCollections,listDestionationItemsCollections,listName, context),
                 GetRequirementsXml(),
                 GetRootObjectMapXml(),
                 GetSystemDataXml(),
@@ -55,11 +55,15 @@ namespace MigrationApiDemo
             return result;
         }
 
-        private MigrationPackageFile ChooseManifest(ListItemCollection sourceItemCollections, List<ListItemCollection> listDestionationItemsCollections, string listName, ClientContext context)
+        private MigrationPackageFile ChooseManifest(ListItemCollection sourceItemCollections, List<ListItemCollection> listSourceItemsCollections, List<ListItemCollection> listDestionationItemsCollections, string listName, ClientContext context)
         {
             if (_source._listName == "Schedules")
             {
                 return GetScheduleManifestXml(sourceItemCollections, listDestionationItemsCollections, listName, context);
+            }
+            else if (_source._listName == "ProjectInformationCT")
+            {
+                return GetProjectInformationCTManifestXml(listSourceItemsCollections, listDestionationItemsCollections, listName, context);
             }
             else
             {
@@ -81,8 +85,6 @@ namespace MigrationApiDemo
 
         private MigrationPackageFile GetLookupListMapXml()
         {
-            //var lookupListMapDefaultXml = Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<LookupLists xmlns=\"urn:deployment-lookuplistmap-schema\" />");
-            //return new MigrationPackageFile { Filename = "LookupListMap.xml", Contents = lookupListMapDefaultXml };
             LookupList lookup = new LookupList();
             var lookupListMapDefaultXml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n";
             lookupListMapDefaultXml += "<LookupLists xmlns=\"urn:deployment-lookuplistmap-schema\">";
@@ -144,7 +146,6 @@ namespace MigrationApiDemo
                                 "</SystemData>";
             return new MigrationPackageFile { Filename = "SystemData.xml", Contents = Encoding.UTF8.GetBytes(systemDataXml) };
         }
-
         private MigrationPackageFile GetUserGroupXml(ClientContext context)
         {
             //var userGroupDefaultXml = Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<UserGroupMap xmlns=\"urn:deployment-usergroupmap-schema\"><Users /><Groups /></UserGroupMap>");
@@ -219,13 +220,11 @@ namespace MigrationApiDemo
                 Contents = Encoding.UTF8.GetBytes(userGroupDefaultXml)
             };
         }
-
         private MigrationPackageFile GetViewFormsListXml()
         {
             var viewFormsListDefaultXml = Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<ViewFormsList xmlns=\"urn:deployment-viewformlist-schema\" />");
             return new MigrationPackageFile { Filename = "ViewFormsList.xml", Contents = viewFormsListDefaultXml };
         }
-
         private MigrationPackageFile GetManifestXml(ListItemCollection listItems, List<ListItemCollection> listDestionationItemsCollections, string listName, ClientContext context)
         {
             var webUrl = $"{_target.SiteName}";
@@ -325,7 +324,7 @@ namespace MigrationApiDemo
                                             case "User":
                                                 spfield.Value = Common.GetSingleId(usersColl, versItem, field.InternalName, true);
                                                 break;
-                                            case "MultiUser":
+                                            case "UserMulti":
                                                 spfield.Value = Common.GetMultipleId(usersColl, versItem, field.InternalName);
                                                 break;
                                             case "Lookup":
@@ -505,7 +504,7 @@ namespace MigrationApiDemo
                                                 case "User":
                                                     spfield.Value = Common.GetSingleId(usersColl, versItem, field.InternalName, true);
                                                     break;
-                                                case "MultiUser":
+                                                case "UserMulti":
                                                     spfield.Value = Common.GetMultipleId(usersColl, versItem, field.InternalName);
                                                     break;
                                                 case "Lookup":
@@ -553,6 +552,136 @@ namespace MigrationApiDemo
                 };
             }
         }
+        private MigrationPackageFile GetProjectInformationCTManifestXml(List<ListItemCollection> listSourceItemCollections, List<ListItemCollection> listDestionationItemsCollections, string listName, ClientContext context)
+        {
+            var webUrl = $"{_target.SiteName}";
+            var listLocation = $"{webUrl}/Lists/{_target.ListName}";
+            var rootNode = new SPGenericObjectCollection1();
+            FieldCollection fields = SPData.GetFields(context, listName);
+            usersColl = new List<User>();
+            _targetColumnChange = GetChangeColumnNames();
+            ListItemCollection listItems = listSourceItemCollections[0];
+            foreach (var listItem in listItems)
+            {
+                Convert.ToInt32(listItem["ID"]);
+                Log.Debug("Item ID : " + Convert.ToInt32(listItem["ID"]));
+                var spListItemContainerId = Guid.NewGuid();
+                var spListItemContainer = GetSPListItem(webUrl, spListItemContainerId, listItem, listSourceItemCollections, fields, listDestionationItemsCollections);
+                if (_isVersionRequired)
+                {
+                    var versionObj = new SPListItemVersionCollection();
+                    var versions = listItem.Versions;
+                    context.Load(versions);
+                    context.ExecuteQuery();
+                    if (versions.Count > 1)
+                    {
+                        var fromCount = 0;
+                        if (_isLimitedVersion)
+                        {
+                            fromCount = versions.Count > _noOfVersion ? versions.Count - _noOfVersion : 0;
+                        }
+                        for (int i = versions.Count - 1; i >= fromCount; i--)
+                        {
+                            var version = versions[i];
+                            var versItem = version.FieldValues;
+                            SPListItem spListItem = new SPListItem();
+                            spListItem.Id = spListItemContainerId.ToString();
+                            spListItem.ParentWebId = _target.WebId.ToString();
+                            spListItem.ParentListId = _target.ListId.ToString();
+                            spListItem.Name = GetFieldValues(listSourceItemCollections, "FileLeafRef", "Text", Convert.ToInt32(listItem["ID"]));
+                            spListItem.DirName = _target.SiteName + "/Lists/" + _target.ListName;//todo Migration: are we allways storing in documents directory?
+                            spListItem.IntId = Convert.ToInt32(GetFieldValues(listSourceItemCollections, "ID", "Text", Convert.ToInt32(listItem["ID"])));
+                            spListItem.Version = versItem["_UIVersionString"].ToString();
+                            spListItem.ContentTypeId = versItem["ContentTypeId"].ToString();
+                            spListItem.Author = Common.GetSingleId(usersColl, versItem, "Author", false);
+                            spListItem.ModifiedBy = Common.GetSingleId(usersColl, versItem, "Editor", false);
+                            spListItem.TimeLastModified = Common.ValidXMLDate(versItem["Modified"].ToString()); // "2018-11-28T11:29:06"
+                            spListItem.TimeCreated = Convert.ToDateTime(GetFieldValues(listSourceItemCollections, "Created", "DateTime", Convert.ToInt32(listItem["ID"])));
+                            spListItem.ModerationStatus = SPModerationStatusType.Approved;
+                            var spfields = new SPFieldCollection();
+                            var versionFields = version.Fields;
+                            context.Load(versionFields);
+                            context.ExecuteQuery();
+                            foreach (var field in versionFields)
+                            {
+                                string fieldType = field.TypeAsString;
+                                if (!field.ReadOnlyField && !field.Hidden && field.InternalName != "ContentType" && field.InternalName != "Attachments" && field.InternalName != "Predecessors")
+                                {
+                                    var spfield = new SPField();
+                                    var isMultiValueTaxField = false; //todo
+                                    var isTaxonomyField = false; //todo
+                                    if (isMultiValueTaxField)
+                                    {
+                                        //todo
+                                        //spfield.Name = [TaxHiddenFieldName];
+                                        //spfield.Value = "[guid-of-hidden-field]|[text-value];[guid-of-hidden-field]|[text-value2];";
+                                        //spfield.Type = "Note"; 
+                                    }
+                                    else if (isTaxonomyField)
+                                    {
+                                        //todo
+                                        //spfield.Name = [TaxHiddenFieldName];
+                                        //spfield.Value = [Value] + "|" + [TaxHiddenFieldValue];
+                                        //spfield.Type = "Note"; 
+                                    }
+                                    else
+                                    {
+                                        spfield.Name = _isDifferentColumn && _targetColumnChange.ContainsKey(field.InternalName + ";#" + fieldType) ? _targetColumnChange[field.InternalName + ";#" + fieldType] : field.InternalName;
+                                        switch (fieldType)
+                                        {
+                                            case "User":
+                                                spfield.Value = Common.GetSingleId(usersColl, versItem, field.InternalName, true);
+                                                break;
+                                            case "UserMulti":
+                                                spfield.Value = Common.GetMultipleId(usersColl, versItem, field.InternalName);
+                                                break;
+                                            case "Lookup":
+                                                spfield.Value = Common.GetLookUpId(versItem, field, _target.lookupListDic, true);
+                                                break;
+                                            case "LookupMulti":
+                                                spfield.Value = Common.GetLookUpId(versItem, field, _target.lookupListDic, false);
+                                                break;
+                                            case "DateTime":
+                                                var dateTimeValue = Common.ValidXMLDate(versItem, field.InternalName);
+                                                spfield.Value = dateTimeValue == String.Empty ? null : dateTimeValue;
+                                                break;
+                                            case "Number":
+                                                spfield.Value = versItem[field.InternalName] != null ? versItem[field.InternalName].ToString() : null;
+                                                break;
+                                            default:
+                                                spfield.Value = versItem[field.InternalName] != null ? versItem[field.InternalName].ToString() : "";
+                                                break;
+                                        }
+                                    }
+                                    spfields.Field.Add(spfield);
+                                }
+                            }
+                            spListItem.Items.Add(spfields);
+                            versionObj.ListItem.Add(spListItem);
+                        }
+                        ((SPListItem)spListItemContainer.Item).Items.Add(versionObj);
+                    }
+                }
+                rootNode.SPObject.Add(spListItemContainer);
+            }
+            Log.Warn("Number of Items to Migrate : " + listItems.Count);
+            var serializer = new XmlSerializer(typeof(SPGenericObjectCollection1));
+            var settings = new XmlWriterSettings();
+            settings.Indent = true;
+            settings.Encoding = Encoding.UTF8;
+            //settings.OmitXmlDeclaration = false;
+            var users = new SPUserResourceValues();
+            using (var memoryStream = new MemoryStream())
+            using (var xmlWriter = XmlWriter.Create(memoryStream, settings))
+            {
+                serializer.Serialize(xmlWriter, rootNode);
+                return new MigrationPackageFile
+                {
+                    Contents = memoryStream.ToArray(),
+                    Filename = "Manifest.xml"
+                };
+            }
+        }
         private SPGenericObject GetSPRootFolder(string webUrl, string listLocation)
         {
             SPGenericObject spfolder = new SPGenericObject();
@@ -577,7 +706,6 @@ namespace MigrationApiDemo
             spfolder.Item = folder;
             return spfolder;
         }
-
         private SPGenericObject GetSPFolder(Guid id, string webUrl, string url, string name)
         {
             SPGenericObject spfolder = new SPGenericObject();
@@ -631,7 +759,7 @@ namespace MigrationApiDemo
             spListItemContainer.ParentId = _target.ListId.ToString();
             spListItemContainer.ParentWebId = _target.WebId.ToString();
             spListItemContainer.ParentWebUrl = webUrl;
-            spListItemContainer.Url = listItem["FileRef"].ToString();
+            spListItemContainer.Url = webUrl + "/" + "Lists/" + _target.ListName + "/" + listItem["FileLeafRef"].ToString();
             var newGuid = Guid.NewGuid();
             SPListItem spListItem = new SPListItem();
             spListItem.Id = spListItemContainerId.ToString();
@@ -657,6 +785,45 @@ namespace MigrationApiDemo
             spListItem.ContentTypeId = listItem["ContentTypeId"].ToString();
             spListItemContainer.Item = spListItem;
             var spfields = GetFields(fields, listItem, spListItem);
+            ((SPListItem)spListItemContainer.Item).Items.Add(spfields);
+            return spListItemContainer;
+        }
+        private SPGenericObject GetSPListItem(string webUrl, Guid spListItemContainerId, ListItem listItem, List<ListItemCollection> listSourceItemCollections, FieldCollection fields, List<ListItemCollection> listDestionationItemsCollections)
+        {
+            SPGenericObject spListItemContainer = new SPGenericObject();
+            spListItemContainer.Id = spListItemContainerId.ToString();
+            spListItemContainer.ObjectType = SPObjectType.SPListItem;
+            spListItemContainer.ParentId = _target.ListId.ToString();
+            spListItemContainer.ParentWebId = _target.WebId.ToString();
+            spListItemContainer.ParentWebUrl = webUrl;
+            spListItemContainer.Url = webUrl + "/" + "Lists/" + _target.ListName + "/" + GetFieldValues(listSourceItemCollections, "FileLeafRef", "Text", Convert.ToInt32(listItem["ID"])); ;
+            var newGuid = Guid.NewGuid();
+            SPListItem spListItem = new SPListItem();
+            spListItem.Id = spListItemContainerId.ToString();
+            string fileLeafRef = GetFieldValues(listSourceItemCollections, "FileLeafRef", "Text", Convert.ToInt32(listItem["ID"]));
+            spListItem.FileUrl = "Lists/" + _target.ListName + "/" + fileLeafRef;
+            spListItem.DocType = ListItemDocType.File;
+            spListItem.Name = fileLeafRef;
+            spListItem.DirName = _target.SiteName + "/Lists/" + _target.ListName; //todo Migration: are we allways storing in documents directory?
+            spListItem.ParentWebId = _target.WebId.ToString();
+            spListItem.ParentFolderId = _target.RootFolderId.ToString();
+            spListItem.ParentListId = _target.ListId.ToString();
+            spListItem.IntId = Convert.ToInt32(listItem["ID"]);
+            //spListItem.DocId = listItem["UniqueId"].ToString();
+            string destItemUniqueId = GetDestionationUniqueId(listDestionationItemsCollections, Convert.ToInt32(listItem["ID"]));
+            spListItem.DocId = destItemUniqueId == String.Empty ? newGuid.ToString() : destItemUniqueId;
+            spListItem.TimeCreated = Convert.ToDateTime(GetFieldValues(listSourceItemCollections, "Created", "DateTime", Convert.ToInt32(listItem["ID"])));
+            spListItem.TimeLastModified = Convert.ToDateTime(GetFieldValues(listSourceItemCollections, "Created", "DateTime", Convert.ToInt32(listItem["ID"]))); // "2018-11-28T11:29:06"
+            spListItem.Version = GetFieldValues(listSourceItemCollections, "_UIVersionString", "Text", Convert.ToInt32(listItem["ID"]));
+            string tempAuthor = GetFieldValues(listSourceItemCollections, "Author", "User", Convert.ToInt32(listItem["ID"]));
+            spListItem.Author = tempAuthor.Split(';')[0];
+            string tempModidfiedBy = GetFieldValues(listSourceItemCollections, "Editor", "User", Convert.ToInt32(listItem["ID"]));
+            spListItem.ModifiedBy = tempModidfiedBy.Split(';')[0];
+            spListItem.Order = Convert.ToInt32(listItem["ID"]) * 100;
+            spListItem.ModerationStatus = SPModerationStatusType.Approved;
+            spListItem.ContentTypeId = GetFieldValues(listSourceItemCollections, "ContentTypeId", "Text", Convert.ToInt32(listItem["ID"]));
+            spListItemContainer.Item = spListItem;
+            var spfields = GetFields(fields, listSourceItemCollections, spListItem, Convert.ToInt32(listItem["ID"]));
             ((SPListItem)spListItemContainer.Item).Items.Add(spfields);
             return spListItemContainer;
         }
@@ -737,6 +904,94 @@ namespace MigrationApiDemo
                     && field.InternalName != "AllocationPerDay" && field.InternalName != "Description" && field.InternalName != "AdditionalPOC"
                     && field.InternalName != "TaskDueDate" && field.InternalName != "TaskStatus")
                 {
+                    if (listItem.FieldValues.ContainsKey(field.InternalName))
+                    {
+
+                        var spfield = new SPField();
+                        var isMultiValueTaxField = false; //todo
+                        var isTaxonomyField = false; //todo
+                        if (isMultiValueTaxField)
+                        {
+                            //todo
+                            //spfield.Name = [TaxHiddenFieldName];
+                            //spfield.Value = "[guid-of-hidden-field]|[text-value];[guid-of-hidden-field]|[text-value2];";
+                            //spfield.Type = "Note"; 
+                        }
+                        else if (isTaxonomyField)
+                        {
+                            //todo
+                            //spfield.Name = [TaxHiddenFieldName];
+                            //spfield.Value = [Value] + "|" + [TaxHiddenFieldValue];
+                            //spfield.Type = "Note"; 
+                        }
+                        else
+                        {
+                            spfield.Name = _isDifferentColumn && _targetColumnChange.ContainsKey(field.InternalName + ";#" + fieldType) ? _targetColumnChange[field.InternalName + ";#" + fieldType] : field.InternalName;
+                            switch (fieldType)
+                            {
+                                case "User":
+                                    spfield.Value = Common.GetSingleId(usersColl, listItem, field.InternalName, true);
+                                    break;
+                                case "UserMulti":
+                                    spfield.Value = Common.GetMultipleId(usersColl, listItem, field.InternalName);
+                                    break;
+                                case "Lookup":
+                                    spfield.Value = Common.GetLookUpId(listItem, field, _target.lookupListDic, true);
+                                    break;
+                                case "LookupMulti":
+                                    spfield.Value = Common.GetLookUpId(listItem, field, _target.lookupListDic, false);
+                                    break;
+                                case "DateTime":
+                                    var dateTimeValue = Common.ValidXMLDate(listItem, field.InternalName);
+                                    spfield.Value = dateTimeValue == String.Empty ? null : dateTimeValue;
+                                    break;
+                                default:
+                                    spfield.Value = listItem[field.InternalName] != null ? listItem[field.InternalName].ToString() : String.Empty;
+                                    break;
+                            }
+                        }
+                        spfields.Field.Add(spfield);
+                    }
+                }
+            }
+
+            return spfields;
+        }
+
+        private SPFieldCollection GetFields(FieldCollection fields, List<ListItemCollection> listSourceItemCollections, SPListItem spListItem, int itemId)
+        {
+            SPFieldCollection spfields = new SPFieldCollection();
+            var sp2field = new SPField();
+            sp2field.Name = "ContentTypeId";
+            sp2field.Value = GetFieldValues(listSourceItemCollections, "ContentTypeId", "Text", itemId);
+            var sp3field = new SPField();
+            sp3field.Name = "ContentType";
+            sp3field.Value = "Item";
+            spfields.Field.Add(sp2field);
+            spfields.Field.Add(sp3field);
+            foreach (var field in fields)
+            {
+                string fieldType = field.TypeAsString;
+                if (!field.Hidden && field.InternalName != "Attachments"
+                    && field.InternalName != "ContentType"
+                    && fieldType != "Computed" && field.InternalName != "ComplianceAssetId" && field.InternalName != "ID"
+                    && field.InternalName != "_UIVersionString" && field.InternalName != "ItemChildCount"
+                    && field.InternalName != "FolderChildCount" && field.InternalName != "_ComplianceFlags"
+                    && field.InternalName != "_ComplianceTag" && field.InternalName != "_ComplianceTagWrittenTime"
+                    && field.InternalName != "_ComplianceTagUserId" && field.InternalName != "AppAuthor"
+                    && field.InternalName != "AppEditor" && field.InternalName != "Predecessors"
+                    && field.InternalName != "Priority" && field.InternalName != "PercentComplete"
+                    && field.InternalName != "Body" && field.InternalName != "RelatedItems"
+                    && field.InternalName != "Status0" && field.InternalName != "Time_x0020_track"
+                    && field.InternalName != "End_x0020_Date_x0020_Text" && field.InternalName != "TimeSpentSubmitStatus"
+                    && field.InternalName != "Start_x0020_Date_x0020_Text" && field.InternalName != "Breach"
+                    && field.InternalName != "Date" && field.InternalName != "Name"
+                    && field.InternalName != "TaskPosition" && field.InternalName != "Editor_x0020_Utilisation"
+                    && field.InternalName != "ShowSkillCategory" && field.InternalName != "Target_x0020_Audiences"
+                    && field.InternalName != "AllocationPerDay" && field.InternalName != "Description" && field.InternalName != "AdditionalPOC"
+                    && field.InternalName != "TaskDueDate" && field.InternalName != "TaskStatus" 
+                    && field.InternalName != "RoutingPriority")
+                {
                     var spfield = new SPField();
                     var isMultiValueTaxField = false; //todo
                     var isTaxonomyField = false; //todo
@@ -757,36 +1012,63 @@ namespace MigrationApiDemo
                     else
                     {
                         spfield.Name = _isDifferentColumn && _targetColumnChange.ContainsKey(field.InternalName + ";#" + fieldType) ? _targetColumnChange[field.InternalName + ";#" + fieldType] : field.InternalName;
-                        switch (fieldType)
-                        {
-                            case "User":
-                                spfield.Value = Common.GetSingleId(usersColl, listItem, field.InternalName, true);
-                                break;
-                            case "MultiUser":
-                                spfield.Value = Common.GetMultipleId(usersColl, listItem, field.InternalName);
-                                break;
-                            case "Lookup":
-                                spfield.Value = Common.GetLookUpId(listItem, field, _target.lookupListDic, true);
-                                break;
-                            case "LookupMulti":
-                                spfield.Value = Common.GetLookUpId(listItem, field, _target.lookupListDic, false);
-                                break;
-                            case "DateTime":
-                                var dateTimeValue = Common.ValidXMLDate(listItem, field.InternalName);
-                                spfield.Value = dateTimeValue == String.Empty ? null : dateTimeValue;
-                                break;
-                            default:
-                                spfield.Value = listItem[field.InternalName] != null ? listItem[field.InternalName].ToString() : String.Empty;
-                                break;
-                        }
+                        spfield.Value = GetFieldValues(listSourceItemCollections, field.InternalName, fieldType, itemId);
                     }
                     spfields.Field.Add(spfield);
+
                 }
             }
 
             return spfields;
         }
+        private string GetFieldValues(List<ListItemCollection> listSourceItemCollections, string fieldInternalName, string fieldType, int itemId)
+        {
+            string fieldValue = null;
+            // Get the ListItem Collections from list.
+            foreach (ListItemCollection listItems in listSourceItemCollections)
+            {
+                // Get the particular Item from listItems
+                var singleListItems = listItems.Where(x => x.Id == itemId).ToList();
+                // Get the ListItem from listItems
+                if (singleListItems.Count > 0)
+                {
+                    foreach (var listItem in singleListItems)
+                    {
+                        if (listItem.FieldValues.ContainsKey(fieldInternalName))
+                        {
+                            switch (fieldType)
+                            {
+                                case "User":
+                                    fieldValue = Common.GetSingleId(usersColl, listItem, fieldInternalName, true);
+                                    break;
+                                case "UserMulti":
+                                    fieldValue = Common.GetMultipleId(usersColl, listItem, fieldInternalName);
+                                    break;
+                                case "Lookup":
+                                    fieldValue = Common.GetLookUpId(listItem, fieldInternalName, _target.lookupListDic, true);
+                                    break;
+                                case "LookupMulti":
+                                    fieldValue = Common.GetLookUpId(listItem, fieldInternalName, _target.lookupListDic, false);
+                                    break;
+                                case "DateTime":
+                                    var dateTimeValue = Common.ValidXMLDate(listItem, fieldInternalName);
+                                    fieldValue = dateTimeValue == String.Empty ? null : dateTimeValue;
+                                    break;
+                                case "Number":
+                                    fieldValue = listItem[fieldInternalName] != null ? listItem[fieldInternalName].ToString() : null;
+                                    break;
+                                default:
+                                    fieldValue = listItem[fieldInternalName] != null ? listItem[fieldInternalName].ToString() : null;
+                                    break;
+                            }
+                            return fieldValue;
+                        }
+                    }
+                }
 
+            }
+            return fieldValue;
+        }
         private Dictionary<string, string> GetChangeColumnNames()
         {
             Dictionary<String, string> targetedChangedColumns = new Dictionary<string, string>();

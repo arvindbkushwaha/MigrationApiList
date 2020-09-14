@@ -19,6 +19,7 @@ namespace MigrationApiDemo
 
         private ListItemCollection _sourceItemsCollections;
         private List<ListItemCollection> _listDestinationItemsCollections = null;
+        private List<ListItemCollection> _listSourceItemsCollections = null;
         private readonly AzureBlob _blobContainingManifestFiles;
         private readonly SharePointMigrationTarget _target;
         private readonly SharePointMigrationSource _source;
@@ -57,7 +58,15 @@ namespace MigrationApiDemo
         {
             string siteUrl = _source._tenantUrl + _source._siteName;
             _sourceContext = SPData.GetOnlineContext(siteUrl, _source._username, _source._password);
-            _sourceItemsCollections = _testDataProvider.ProvisionAndGetFiles(_sourceContext, _source._listName, true);
+            if (_source._listName != "ProjectInformationCT")
+            {
+                _sourceItemsCollections = _testDataProvider.ProvisionAndGetFiles(_sourceContext, _source._listName, true);
+            }
+            else
+            {
+                _listSourceItemsCollections = _testDataProvider.GetProjectInformationData(_sourceContext, _source._listName, true);
+                //_sourceItemsCollections = _listSourceItemsCollections[0];
+            }
 
             string destionationUrl = _target._tenantUrl + _target.SiteName;
             _destinationContext = SPData.GetOnlineContext(destionationUrl, _target._username, _target._password);
@@ -68,7 +77,7 @@ namespace MigrationApiDemo
                 _listDestinationItemsCollections = new List<ListItemCollection>();
                 ListItemCollection destinationItemsCollections = _testDataProvider.ProvisionAndGetFiles(_destinationContext, _target.ListName, false);
                 _destinationContext.Load(destinationItemsCollections);
-                if(destinationItemsCollections.Count > 0)
+                if (destinationItemsCollections.Count > 0)
                 {
                     _listDestinationItemsCollections.Add(destinationItemsCollections);
                 }
@@ -84,10 +93,10 @@ namespace MigrationApiDemo
 
         public void CreateAndUploadMigrationPackage()
         {
-            if (_sourceItemsCollections.Count > 0)
+            if ((_sourceItemsCollections != null && _sourceItemsCollections.Count > 0) || (_listSourceItemsCollections != null && _listSourceItemsCollections.Count > 0))
             {
                 var manifestPackage = new ManifestPackage(_target, _source);
-                var filesInManifestPackage = manifestPackage.GetManifestPackageFiles(_sourceItemsCollections, _listDestinationItemsCollections, _source._listName, _sourceContext);
+                var filesInManifestPackage = manifestPackage.GetManifestPackageFiles(_sourceItemsCollections, _listSourceItemsCollections, _listDestinationItemsCollections, _source._listName, _sourceContext);
                 var blobContainingManifestFiles = _blobContainingManifestFiles;
                 blobContainingManifestFiles.RemoveAllFiles();
                 foreach (var migrationPackageFile in filesInManifestPackage)
